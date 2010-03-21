@@ -1,5 +1,4 @@
 #include <avr/io.h>
-#include "default.h"
 #include "uart.h"
 
 /*

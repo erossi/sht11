@@ -1,10 +1,9 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <avr/io.h>
-#include "default.h"
-#include "sht11.h"
-#include "uart.h"
 #include <util/delay.h>
+#include "uart.h"
+#include "sht11.h"
 
 int main(void)
 {

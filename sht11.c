@@ -18,42 +18,46 @@
 #include <stdint.h>
 #include <math.h>
 #include <avr/io.h>
-#include "default.h"
-#include "sht11.h"
 #include <util/delay.h>
+#include "sht11.h"
 
 void set_sck_high(void)
 {
-	SHT11_PORT |= _BV(SHT11_SCK);
+	SHT11_PORT |= (1<<SHT11_SCK);
 }
 
 void set_sck_low(void)
 {
-	SHT11_PORT &= ~_BV(SHT11_SCK);
+	SHT11_PORT &= ~(1<<SHT11_SCK);
 }
 
 void set_data_out(void)
 {
-	SHT11_DDR |= _BV(SHT11_SCK) | _BV(SHT11_DATA);
+	SHT11_DDR |= (1<<SHT11_SCK) | (1<<SHT11_DATA);
 }
 
 void set_data_in(void)
 {
-	SHT11_DDR |= _BV(SHT11_SCK);
-	SHT11_DDR &= ~_BV(SHT11_DATA);
+	SHT11_DDR |= (1<<SHT11_SCK);
+	SHT11_DDR &= ~(1<<SHT11_DATA);
 }
 
 void set_data_high(void)
 {
 	/* release the data pin, pullup do the rest */
-	/*   SHT11_PORT |= _BV(SHT11_DATA); */
+	/*   SHT11_PORT |= (1<<SHT11_DATA); */
 	set_data_in();
 }
 
 void set_data_low(void)
 {
-	SHT11_PORT &= ~_BV(SHT11_DATA);
+	SHT11_PORT &= ~(1<<SHT11_DATA);
 	set_data_out();
+}
+
+void sck_delay(void)
+{
+	_delay_ms(SHT11_SCK_DELAY);
 }
 
 void send_byte(uint8_t byte)
@@ -65,14 +69,14 @@ void send_byte(uint8_t byte)
 	while (i) {
 		--i;
 
-		if (byte & _BV(i))
+		if (byte & (1<<i))
 			set_data_high();
 		else
 			set_data_low();
-		_delay_ms(SHT11_SCK_DELAY);
+		sck_delay();
 
 		set_sck_high();
-		_delay_ms(SHT11_SCK_DELAY);
+		sck_delay();
 
 		set_sck_low();
 	}
@@ -87,14 +91,14 @@ uint8_t read_byte(void)
 
 	while (i) {
 		--i;
-		_delay_ms(SHT11_SCK_DELAY);
+		sck_delay();
 		set_sck_high();
-		bit = SHT11_PIN & _BV(SHT11_DATA);
-		_delay_ms(SHT11_SCK_DELAY);
+		bit = SHT11_PIN & (1<<SHT11_DATA);
+		sck_delay();
 		set_sck_low();
 
 		if (bit)
-			result |= _BV(i);
+			result |= (1<<i);
 	}
 
 	return (result);
@@ -104,9 +108,9 @@ void send_ack(void)
 {
 	/* Send ack */
 	set_data_low();
-	_delay_ms(SHT11_SCK_DELAY);
+	sck_delay();
 	set_sck_high();
-	_delay_ms(SHT11_SCK_DELAY);
+	sck_delay();
 	set_sck_low();
 	set_data_in();
 }
@@ -117,10 +121,10 @@ uint8_t read_ack(void)
 
 	/* read ack after command */
 	set_data_in();
-	_delay_ms(SHT11_SCK_DELAY);
+	sck_delay();
 	set_sck_high();
-	ack = SHT11_PIN & _BV(SHT11_DATA);
-	_delay_ms(SHT11_SCK_DELAY);
+	ack = SHT11_PIN & (1<<SHT11_DATA);
+	sck_delay();
 	set_sck_low();
 
 	return (ack);
@@ -136,25 +140,25 @@ void send_start_command(void)
 
 	set_data_high();
 	/*   set_data_out (); */
-	_delay_ms(SHT11_SCK_DELAY);
+	sck_delay();
 	set_sck_high();
-	_delay_ms(SHT11_SCK_DELAY);
+	sck_delay();
 	set_data_low();
-	_delay_ms(SHT11_SCK_DELAY);
+	sck_delay();
 	set_sck_low();
-	_delay_ms(SHT11_SCK_DELAY);
+	sck_delay();
 	set_sck_high();
-	_delay_ms(SHT11_SCK_DELAY);
+	sck_delay();
 	set_data_high();
-	_delay_ms(SHT11_SCK_DELAY);
+	sck_delay();
 	set_sck_low();
-	_delay_ms(SHT11_SCK_DELAY);
+	sck_delay();
 }
 
 void sht11_init(void)
 {
 	/* sht11 clk pin to output and set high */
-	SHT11_DDR |= _BV(SHT11_SCK);
+	SHT11_DDR |= (1<<SHT11_SCK);
 	set_sck_high();
 }
 
@@ -221,9 +225,9 @@ uint16_t sht11_send_command(uint8_t command)
 
 		/* do not Send ack */
 		set_data_high();
-		_delay_ms(SHT11_SCK_DELAY);
+		sck_delay();
 		set_sck_high();
-		_delay_ms(SHT11_SCK_DELAY);
+		sck_delay();
 		set_sck_low();
 		set_data_in();
 	}
