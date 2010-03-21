@@ -32,7 +32,9 @@
 
 struct sht11_t {
 	uint16_t raw_temperature;
+        uint8_t raw_temperature_crc8;
 	uint16_t raw_humidity;
+        uint8_t raw_humidity_crc8;
 	double temperature;
 	double humidity_linear;
 	double humidity_compensated;
@@ -43,6 +45,6 @@ struct sht11_t {
 };
 
 void sht11_init(void);
-void sht11_read_all(struct sht11_t *dataset);
+void sht11_read_all(struct sht11_t *sht11);
 
 #endif

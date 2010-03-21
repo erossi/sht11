@@ -152,18 +152,17 @@ uint8_t sht11_read_status_reg(void)
 }
 
 /* Disable Interrupt to avoid possible clk problem. */
-uint16_t sht11_send_command(uint8_t command)
+void send_cmd(struct sht11_t *sht11)
 {
-	uint16_t result;
-	uint8_t crc8, ack;
+	uint8_t ack;
 
 	/* safety 000xxxxx */
-	command &= 31;
-	result = 0;
-	crc8 = 0;
+	sht11->cmd &= 31;
+	sht11->result = 0;
+	sht11->crc8 = 0;
 
 	send_start_command();
-	send_byte(command);
+	send_byte(sht11->cmd);
 	ack = read_ack();
 
 	if (!ack) {
@@ -172,18 +171,18 @@ uint16_t sht11_send_command(uint8_t command)
 		loop_until_bit_is_clear(SHT11_PIN, SHT11_DATA);
 
 		/* inizio la lettura dal MSB del primo byte */
-		result = read_byte() << 8;
+		sht11->result = read_byte() << 8;
 
 		/* Send ack */
 		send_ack();
 
 		/* inizio la lettura dal MSB del secondo byte */
-		result |= read_byte();
+		sht11->result |= read_byte();
 
 		send_ack();
 
 		/* inizio la lettura del CRC-8 */
-		crc8 = read_byte();
+		sht11->crc8 = read_byte();
 
 		/* do not Send ack */
 		set_data_high();
@@ -193,46 +192,50 @@ uint16_t sht11_send_command(uint8_t command)
 		set_sck_low();
 		set_data_in();
 	}
-
-	return (result);
 }
 
-void sht11_dewpoint(struct sht11_t *dataset)
+void sht11_dewpoint(struct sht11_t *sht11)
 {
 	double k;
-	k = (log10(dataset->humidity_compensated) - 2) / 0.4343 +
-	    (17.62 * dataset->temperature) / (243.12 + dataset->temperature);
-	dataset->dewpoint = 243.12 * k / (17.62 - k);
+	k = (log10(sht11->humidity_compensated) - 2) / 0.4343 +
+	    (17.62 * sht11->temperature) / (243.12 + sht11->temperature);
+	sht11->dewpoint = 243.12 * k / (17.62 - k);
 }
 
-void sht11_read_temperature(struct sht11_t *dataset)
+void sht11_read_temperature(struct sht11_t *sht11)
 {
-	dataset->raw_temperature = sht11_send_command(SHT11_CMD_MEASURE_TEMP);
-	dataset->temperature = SHT11_T1 * dataset->raw_temperature - 40;
+	sht11->cmd = SHT11_CMD_MEASURE_TEMP;
+	send_cmd(sht11);
+	sht11->raw_temperature = sht11->result;
+	sht11->raw_temperature_crc8 = sht11->crc8;
+	sht11->temperature = SHT11_T1 * sht11->raw_temperature - 40;
 }
 
-void sht11_read_humidity(struct sht11_t *dataset)
+void sht11_read_humidity(struct sht11_t *sht11)
 {
-	dataset->raw_humidity = sht11_send_command(SHT11_CMD_MEASURE_HUMI);
-	dataset->humidity_linear = SHT11_C1 +
-	    (SHT11_C2 * dataset->raw_humidity) +
-	    (SHT11_C3 * dataset->raw_humidity * dataset->raw_humidity);
+	sht11->cmd = SHT11_CMD_MEASURE_HUMI;
+	send_cmd(sht11);
+	sht11->raw_humidity = sht11->result;
+	sht11->raw_humidity_crc8 = sht11->crc8;
+	sht11->humidity_linear = SHT11_C1 +
+	    (SHT11_C2 * sht11->raw_humidity) +
+	    (SHT11_C3 * sht11->raw_humidity * sht11->raw_humidity);
 
 	/* Compensate humidity result with temperature */
-	dataset->humidity_compensated = (dataset->temperature - 25) *
-	    (SHT11_T1 + SHT11_T2 * dataset->raw_humidity) +
-	    dataset->humidity_linear;
+	sht11->humidity_compensated = (sht11->temperature - 25) *
+	    (SHT11_T1 + SHT11_T2 * sht11->raw_humidity) +
+	    sht11->humidity_linear;
 
 	/* Range adjustment */
-	if (dataset->humidity_compensated > 100)
-		dataset->humidity_compensated = 100;
-	if (dataset->humidity_compensated < 0.1)
-		dataset->humidity_compensated = 0.1;
+	if (sht11->humidity_compensated > 100)
+		sht11->humidity_compensated = 100;
+	if (sht11->humidity_compensated < 0.1)
+		sht11->humidity_compensated = 0.1;
 }
 
-void sht11_read_all(struct sht11_t *dataset)
+void sht11_read_all(struct sht11_t *sht11)
 {
-	sht11_read_temperature(dataset);
-	sht11_read_humidity(dataset);
-	sht11_dewpoint(dataset);
+	sht11_read_temperature(sht11);
+	sht11_read_humidity(sht11);
+	sht11_dewpoint(sht11);
 }
