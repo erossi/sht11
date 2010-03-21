@@ -32,9 +32,11 @@
 
 struct sht11_t {
 	uint16_t raw_temperature;
-        uint8_t raw_temperature_crc8;
+        uint8_t raw_temperature_crc8; /* read */
+        uint8_t raw_temperature_crc8c; /* calculated */
 	uint16_t raw_humidity;
         uint8_t raw_humidity_crc8;
+        uint8_t raw_humidity_crc8c;
 	double temperature;
 	double humidity_linear;
 	double humidity_compensated;
@@ -42,6 +44,7 @@ struct sht11_t {
 	uint8_t cmd; /* command to send */
 	uint16_t result; /* result of the command */
 	uint8_t crc8; /* crc8 returned */
+	uint8_t crc8c; /* crc8 calculated */
 };
 
 void sht11_init(void);

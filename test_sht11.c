@@ -17,7 +17,9 @@
 
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 #include <avr/io.h>
+#include <avr/pgmspace.h>
 #include <util/delay.h>
 #include "uart.h"
 #include "sht11.h"
@@ -25,6 +27,7 @@
 int main(void)
 {
   char *string;
+  char *line;
   struct sht11_t dataset;
 
   /*
@@ -37,18 +40,7 @@ int main(void)
   DDRB = 12;
   PORTB = 12;
   string = malloc (20);
-
-/* Easy test on port b
-
-  for (;;)
-  {
-    loop_until_bit_is_clear (PINB, 0);
-    PORTB = 0;
-    _delay_ms (100);
-    PORTB = 12;
-    _delay_ms (100);
-  }
-*/
+  line = malloc (74);
 
   sht11_init ();
   uart_init();
@@ -65,30 +57,64 @@ int main(void)
 
     sht11_read_all (&dataset);
 
+    strcpy_P (line, PSTR("Raw temperature: "));
     string = ultoa (dataset.raw_temperature, string, 10);
-    uart_printstr (string);
-    uart_putchar (' ');
-
-    string = ultoa (dataset.raw_humidity, string, 10);
-    uart_printstr (string);
-    uart_putchar (' ');
-
-    string = dtostrf ((double)dataset.temperature, 6, 3, string);
-    uart_printstr (string);
-    uart_putchar (' ');
-
-    string = dtostrf ((double)dataset.humidity_linear, 6, 3, string);
-    uart_printstr (string);
-    uart_putchar (' ');
-
-    string = dtostrf ((double)dataset.humidity_compensated, 6, 3, string);
-    uart_printstr (string);
-    uart_putchar (' ');
-
-    string = dtostrf ((double)dataset.dewpoint, 6, 3, string);
-    uart_printstr (string);
+    strcat (line, string);
+    uart_printstr (line);
     uart_putchar ('\n');
 
+    strcpy_P (line, PSTR("Raw temperature crc8, crc8c: "));
+    string = utoa (dataset.raw_temperature_crc8, string, 10);
+    strcat (line, string);
+    strcat_P (line, PSTR(" ,"));
+    string = utoa (dataset.raw_temperature_crc8c, string, 10);
+    strcat (line, string);
+    uart_printstr (line);
+    uart_putchar ('\n');
+
+    strcpy_P (line, PSTR("Raw humidity: "));
+    string = ultoa (dataset.raw_humidity, string, 10);
+    strcat (line, string);
+    uart_printstr (line);
+    uart_putchar ('\n');
+
+    strcpy_P (line, PSTR("Raw humidity crc8, crc8c: "));
+    string = utoa (dataset.raw_humidity_crc8, string, 10);
+    strcat (line, string);
+    strcat_P (line, PSTR(" ,"));
+    string = utoa (dataset.raw_humidity_crc8c, string, 10);
+    strcat (line, string);
+    uart_printstr (line);
+    uart_putchar ('\n');
+
+    strcpy_P (line, PSTR("Temperature: "));
+    string = dtostrf ((double)dataset.temperature, 6, 3, string);
+    strcat (line, string);
+    uart_printstr (line);
+    uart_putchar ('\n');
+
+    strcpy_P (line, PSTR("Humidity linear: "));
+    string = dtostrf ((double)dataset.humidity_linear, 6, 3, string);
+    strcat (line, string);
+    uart_printstr (line);
+    uart_putchar ('\n');
+
+    strcpy_P (line, PSTR("Humidity compensated: "));
+    string = dtostrf ((double)dataset.humidity_compensated, 6, 3, string);
+    strcat (line, string);
+    uart_printstr (line);
+    uart_putchar ('\n');
+
+    strcpy_P (line, PSTR("Dewpoint: "));
+    string = dtostrf ((double)dataset.dewpoint, 6, 3, string);
+    strcat (line, string);
+    uart_printstr (line);
+    uart_putchar ('\n');
+
+    uart_putchar ('\n');
     _delay_ms (100);
   }
+
+  free (line);
+  free (string);
 }

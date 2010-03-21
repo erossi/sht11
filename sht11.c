@@ -18,6 +18,7 @@
 #include <stdint.h>
 #include <math.h>
 #include <avr/io.h>
+#include <util/crc16.h>
 #include <util/delay.h>
 #include "sht11_avr_io.h"
 #include "sht11.h"
@@ -151,19 +152,45 @@ uint8_t sht11_read_status_reg(void)
 	return (result);
 }
 
+/*
+   sensirion has implemented the CRC the wrong way round. We
+   need to swap everything.
+   bit-swap a byte (bit7->bit0, bit6->bit1 ...)
+   code provided by Guido Socher http://www.tuxgraphics.org/
+ */
+uint8_t bitswapbyte(uint8_t byte)
+{
+	uint8_t i=8;
+	uint8_t result=0;
+	while(i) {
+		result=(result<<1);
+
+		if (1 & byte) {
+			result=result | 1;
+		}
+
+		i--;
+		byte=(byte>>1);
+	}
+
+	return(result);
+}
+
 /* Disable Interrupt to avoid possible clk problem. */
 void send_cmd(struct sht11_t *sht11)
 {
-	uint8_t ack;
+	uint8_t ack, byte;
 
 	/* safety 000xxxxx */
 	sht11->cmd &= 31;
 	sht11->result = 0;
 	sht11->crc8 = 0;
+	sht11->crc8c = 0;
 
 	send_start_command();
 	send_byte(sht11->cmd);
 	ack = read_ack();
+	sht11->crc8c = _crc_ibutton_update(sht11->crc8c, bitswapbyte(sht11->cmd));
 
 	if (!ack) {
 		/* And if nothing came back this code hangs here */
@@ -171,13 +198,17 @@ void send_cmd(struct sht11_t *sht11)
 		loop_until_bit_is_clear(SHT11_PIN, SHT11_DATA);
 
 		/* inizio la lettura dal MSB del primo byte */
-		sht11->result = read_byte() << 8;
+		byte = read_byte();
+		sht11->result = byte << 8;
+		sht11->crc8c = _crc_ibutton_update(sht11->crc8c, bitswapbyte(byte));
 
 		/* Send ack */
 		send_ack();
 
 		/* inizio la lettura dal MSB del secondo byte */
-		sht11->result |= read_byte();
+		byte = read_byte();
+		sht11->result |= byte;
+		sht11->crc8c = _crc_ibutton_update(sht11->crc8c, bitswapbyte(byte));
 
 		send_ack();
 
@@ -208,6 +239,7 @@ void sht11_read_temperature(struct sht11_t *sht11)
 	send_cmd(sht11);
 	sht11->raw_temperature = sht11->result;
 	sht11->raw_temperature_crc8 = sht11->crc8;
+	sht11->raw_temperature_crc8c = sht11->crc8c;
 	sht11->temperature = SHT11_T1 * sht11->raw_temperature - 40;
 }
 
@@ -217,6 +249,7 @@ void sht11_read_humidity(struct sht11_t *sht11)
 	send_cmd(sht11);
 	sht11->raw_humidity = sht11->result;
 	sht11->raw_humidity_crc8 = sht11->crc8;
+	sht11->raw_humidity_crc8c = sht11->crc8c;
 	sht11->humidity_linear = SHT11_C1 +
 	    (SHT11_C2 * sht11->raw_humidity) +
 	    (SHT11_C3 * sht11->raw_humidity * sht11->raw_humidity);
