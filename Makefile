@@ -14,7 +14,7 @@ SIZE = avr-size
 DUDE = avrdude -c stk500v1 -p $(MCU) -P /dev/ttyUSB0 -e -U flash:w:$(PRGNAME).hex
 REMOVE = rm -f
 
-objects = uart.o sht11.o
+objects = sht11_avr_io.o uart.o sht11.o
 
 .PHONY: clean indent
 .SILENT: help
