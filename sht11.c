@@ -20,6 +20,11 @@
 #include <avr/io.h>
 #include <util/crc16.h>
 #include <util/delay.h>
+
+#ifdef HAVE_DEFAULT
+#include "default.h"
+#endif
+
 #include "sht11_avr_io.h"
 #include "sht11.h"
 
