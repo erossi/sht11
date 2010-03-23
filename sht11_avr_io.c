@@ -16,6 +16,7 @@
  */
 
 #include <avr/io.h>
+#include <util/crc16.h>
 #include <util/delay.h>
 
 #ifdef HAVE_DEFAULT
@@ -76,6 +77,35 @@ uint8_t wait_until_data_is_ready(void)
 	loop_until_bit_is_set(SHT11_PIN, SHT11_DATA);
 	loop_until_bit_is_clear(SHT11_PIN, SHT11_DATA);
 	return(0);
+}
+
+/*
+   sensirion has implemented the CRC the wrong way round. We
+   need to swap everything.
+   bit-swap a byte (bit7->bit0, bit6->bit1 ...)
+   code provided by Guido Socher http://www.tuxgraphics.org/
+ */
+uint8_t bitswapbyte(uint8_t byte)
+{
+	uint8_t i=8;
+	uint8_t result=0;
+	while(i) {
+		result=(result<<1);
+
+		if (1 & byte) {
+			result=result | 1;
+		}
+
+		i--;
+		byte=(byte>>1);
+	}
+
+	return(result);
+}
+
+uint8_t sht11_crc8(uint8_t crc, uint8_t data)
+{
+	return(_crc_ibutton_update(crc, bitswapbyte(data)));
 }
 
 void sht11_io_init(void)
