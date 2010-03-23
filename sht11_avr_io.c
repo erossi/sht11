@@ -22,6 +22,7 @@
 #include "default.h"
 #endif
 
+#include "sht11_io.h"
 #include "sht11_avr_io.h"
 
 void set_sck_high(void)
@@ -58,7 +59,33 @@ void set_data_low(void)
 	set_data_out();
 }
 
+/* remember this return 0 or n, not 0 or 1 */
+uint8_t read_data_pin(void)
+{
+	return(SHT11_PIN & (1<<SHT11_DATA));
+}
+
 void sck_delay(void)
 {
 	_delay_ms(SHT11_SCK_DELAY);
 }
+
+uint8_t wait_until_data_is_ready(void)
+{
+	/* And if nothing came back this code hangs here */
+	loop_until_bit_is_set(SHT11_PIN, SHT11_DATA);
+	loop_until_bit_is_clear(SHT11_PIN, SHT11_DATA);
+	return(0);
+}
+
+void sht11_io_init(void)
+{
+	/* sht11 clk pin to output and set high */
+	SHT11_DDR |= (1<<SHT11_SCK);
+	set_sck_high();
+}
+
+void sht11_io_end(void)
+{
+}
+

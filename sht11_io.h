@@ -15,19 +15,19 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef SHT11_AVRIO_H
-#define SHT11_AVRIO_H
+#ifndef SHT11_IO_H
+#define SHT11_IO_H
 
-/* clock delay in ms */
-#define SHT11_SCK_DELAY 1
-
-/* stuff that can be configured on default.h */
-#ifndef SHT11_HAVE_DEFAULT
-#define SHT11_DDR	DDRC
-#define SHT11_PORT	PORTC
-#define SHT11_PIN	PINC
-#define SHT11_DATA	PC1
-#define SHT11_SCK	PC0
-#endif
+void set_sck_high(void);
+void set_sck_low(void);
+void set_data_out(void);
+void set_data_in(void);
+void set_data_high(void);
+void set_data_low(void);
+uint8_t read_data_pin(void);
+void sck_delay(void);
+uint8_t wait_until_data_is_ready(void);
+void sht11_io_init(void);
+void sht11_io_end(void);
 
 #endif

@@ -25,7 +25,7 @@
 #include "default.h"
 #endif
 
-#include "sht11_avr_io.h"
+#include "sht11_io.h"
 #include "sht11.h"
 
 void send_byte(uint8_t byte)
@@ -41,18 +41,17 @@ void send_byte(uint8_t byte)
 			set_data_high();
 		else
 			set_data_low();
-		sck_delay();
 
+		sck_delay();
 		set_sck_high();
 		sck_delay();
-
 		set_sck_low();
 	}
 }
 
 uint8_t read_byte(void)
 {
-	uint8_t i, bit, result;
+	uint8_t i, result;
 
 	result = 0;
 	i = 8;
@@ -61,12 +60,13 @@ uint8_t read_byte(void)
 		--i;
 		sck_delay();
 		set_sck_high();
-		bit = SHT11_PIN & (1<<SHT11_DATA);
+
+		if (read_data_pin())
+			result |= (1<<i);
+
 		sck_delay();
 		set_sck_low();
 
-		if (bit)
-			result |= (1<<i);
 	}
 
 	return (result);
@@ -91,7 +91,7 @@ uint8_t read_ack(void)
 	set_data_in();
 	sck_delay();
 	set_sck_high();
-	ack = SHT11_PIN & (1<<SHT11_DATA);
+	ack = read_data_pin();
 	sck_delay();
 	set_sck_low();
 
@@ -125,9 +125,7 @@ void send_start_command(void)
 
 void sht11_init(void)
 {
-	/* sht11 clk pin to output and set high */
-	SHT11_DDR |= (1<<SHT11_SCK);
-	set_sck_high();
+	sht11_io_init();
 }
 
 uint8_t sht11_read_status_reg(void)
@@ -199,8 +197,7 @@ void send_cmd(struct sht11_t *sht11)
 
 	if (!ack) {
 		/* And if nothing came back this code hangs here */
-		loop_until_bit_is_set(SHT11_PIN, SHT11_DATA);
-		loop_until_bit_is_clear(SHT11_PIN, SHT11_DATA);
+		wait_until_data_is_ready();
 
 		/* inizio la lettura dal MSB del primo byte */
 		byte = read_byte();
