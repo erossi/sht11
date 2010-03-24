@@ -18,6 +18,8 @@
 #ifndef SHT11_IO_H
 #define SHT11_IO_H
 
+void set_sck_out(void);
+void set_sck_in(void);
 void set_sck_high(void);
 void set_sck_low(void);
 void set_data_out(void);
@@ -28,7 +30,7 @@ uint8_t read_data_pin(void);
 void sck_delay(void);
 uint8_t wait_until_data_is_ready(void);
 uint8_t sht11_crc8(uint8_t crc, uint8_t data);
-void sht11_io_init(void);
+int sht11_io_init(void);
 void sht11_io_end(void);
 
 #endif

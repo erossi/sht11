@@ -26,6 +26,16 @@
 #include "sht11_io.h"
 #include "sht11_avr_io.h"
 
+void set_sck_out(void)
+{
+	SHT11_DDR |= (1<<SHT11_SCK);
+}
+
+void set_sck_in(void)
+{
+	SHT11_DDR &= ~(1<<SHT11_SCK);
+}
+
 void set_sck_high(void)
 {
 	SHT11_PORT |= (1<<SHT11_SCK);
@@ -108,14 +118,18 @@ uint8_t sht11_crc8(uint8_t crc, uint8_t data)
 	return(_crc_ibutton_update(crc, bitswapbyte(data)));
 }
 
-void sht11_io_init(void)
+int sht11_io_init(void)
 {
 	/* sht11 clk pin to output and set high */
-	SHT11_DDR |= (1<<SHT11_SCK);
+	set_sck_out();
 	set_sck_high();
+	return(0); /* for compatibility reason */
 }
 
+/* only for compatibile reason */
 void sht11_io_end(void)
 {
+	set_sck_in();
+	set_data_in();
 }
 
