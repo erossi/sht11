@@ -37,6 +37,9 @@ struct sht11_t {
 	uint16_t raw_humidity;
         uint8_t raw_humidity_crc8;
         uint8_t raw_humidity_crc8c;
+	uint8_t status_reg;
+	uint8_t status_reg_crc8;
+	uint8_t status_reg_crc8c;
 	double temperature;
 	double humidity_linear;
 	double humidity_compensated;
@@ -47,7 +50,8 @@ struct sht11_t {
 	uint8_t crc8c; /* crc8 calculated */
 };
 
-void sht11_init(void);
+void sht11_init(struct sht11_t *sht11);
+void sht11_end(void);
 void sht11_read_all(struct sht11_t *sht11);
 
 #endif

@@ -42,8 +42,33 @@ int main(void)
   string = malloc (20);
   line = malloc (74);
 
-  sht11_init ();
+  sht11_init(&dataset);
   uart_init();
+
+  strcpy_P (line, PSTR("\n\nStatus register: "));
+  string = utoa (dataset.status_reg, string, 10);
+  strcat (line, string);
+  uart_printstr (line);
+  uart_putchar ('\n');
+
+  strcpy_P (line, PSTR("Status register crc8, crc8c: "));
+  string = utoa (dataset.status_reg_crc8, string, 10);
+  strcat (line, string);
+  strcat_P (line, PSTR(" ,"));
+  string = utoa (dataset.status_reg_crc8c, string, 10);
+  strcat (line, string);
+  uart_printstr (line);
+  uart_putchar ('\n');
+
+  if (dataset.status_reg_crc8 && (dataset.status_reg_crc8 == dataset.status_reg_crc8c)) {
+	  strcpy_P (line, PSTR("Device detected OK."));
+	  uart_printstr (line);
+	  uart_putchar ('\n');
+  } else {
+	  strcpy_P (line, PSTR("Device not detected!"));
+	  uart_printstr (line);
+	  uart_putchar ('\n');
+  }
 
   for (;;)
   {

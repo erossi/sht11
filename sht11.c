@@ -97,6 +97,17 @@ uint8_t read_ack(void)
 	return (ack);
 }
 
+/* terminate a session without sending an ack */
+void terminate_no_ack(void)
+{
+	set_data_high();
+	sck_delay();
+	set_sck_high();
+	sck_delay();
+	set_sck_low();
+	set_data_in();
+}
+
 void send_start_command(void)
 {
 	/* DATA:   _____           ________
@@ -122,36 +133,25 @@ void send_start_command(void)
 	sck_delay();
 }
 
-void sht11_init(void)
+void sht11_read_status_reg(struct sht11_t *sht11)
 {
-	sht11_io_init();
-}
+	uint8_t ack;
 
-uint8_t sht11_read_status_reg(void)
-{
-	uint8_t result, crc8, ack;
-
-	result = 0;
-	crc8 = 0;
+	sht11->cmd = 7; /* read status reg cmd */
+	sht11->status_reg_crc8 = 0;
+	sht11->status_reg_crc8c = 0;
 	send_start_command();
-
-	/* send read status register command */
-	send_byte(7);
+	send_byte(sht11->cmd);
 	ack = read_ack();
+	sht11->status_reg_crc8c = sht11_crc8(sht11->status_reg_crc8c, sht11->cmd);
 
-	if (ack)
-		return (0);
-
-	result = read_byte();
-
-	/* Send ack */
-	send_ack();
-
-	/* inizio la lettura del CRC-8 */
-	crc8 = read_byte();
-
-	send_ack();
-	return (result);
+	if (!ack) {
+		sht11->status_reg = read_byte();
+		sht11->status_reg_crc8c = sht11_crc8(sht11->status_reg_crc8c, sht11->status_reg);
+		send_ack();
+		sht11->status_reg_crc8 = read_byte();
+		terminate_no_ack();
+	}
 }
 
 /* Disable Interrupt to avoid possible clk problem. */
@@ -191,14 +191,7 @@ void send_cmd(struct sht11_t *sht11)
 
 		/* inizio la lettura del CRC-8 */
 		sht11->crc8 = read_byte();
-
-		/* do not Send ack */
-		set_data_high();
-		sck_delay();
-		set_sck_high();
-		sck_delay();
-		set_sck_low();
-		set_data_in();
+		terminate_no_ack();
 	}
 }
 
@@ -241,6 +234,17 @@ void sht11_read_humidity(struct sht11_t *sht11)
 		sht11->humidity_compensated = 100;
 	if (sht11->humidity_compensated < 0.1)
 		sht11->humidity_compensated = 0.1;
+}
+
+void sht11_init(struct sht11_t *sht11)
+{
+	sht11_io_init();
+	sht11_read_status_reg(sht11);
+}
+
+void sht11_end(void)
+{
+	sht11_io_end();
 }
 
 void sht11_read_all(struct sht11_t *sht11)
