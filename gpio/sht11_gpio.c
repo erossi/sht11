@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <time.h>
 #include <unistd.h>
 
 #ifdef HAVE_DEFAULT
@@ -53,8 +54,10 @@ int export_pins(int todo)
 
 	rewind(f);
 	fwrite(DATA_GPIO_PIN, sizeof(char), strlen(DATA_GPIO_PIN), f);
+	fflush(f);
 	rewind(f);
 	fwrite(SCK_GPIO_PIN, sizeof(char), strlen(SCK_GPIO_PIN), f);
+	fflush(f);
 	fclose(f);
 	free(s);
 	return(0);
@@ -84,6 +87,7 @@ void set_pin(FILE *f, const char *ddr)
 {
 	rewind(f);
 	fwrite(ddr, sizeof(char), sizeof(ddr), f);
+	fflush(f);
 }
 
 uint8_t read_pin(FILE *f, char *value)
@@ -91,7 +95,7 @@ uint8_t read_pin(FILE *f, char *value)
 	rewind(f);
 	fread(value, sizeof(char), 1, f);
 
-	if (strcmp(value, "0"))
+	if (strcmp(value, "1"))
 		return(1);
 	else
 		return(0);
@@ -147,7 +151,11 @@ uint8_t read_data_pin(void)
 
 void sck_delay(void)
 {
-	usleep(10000);
+	struct timespec ts;
+
+	ts.tv_sec = 0;
+	ts.tv_nsec = 1000000;
+	nanosleep (&ts, NULL);
 }
 
 uint8_t wait_until_data_is_ready(void)
@@ -199,12 +207,19 @@ int sht11_io_init(void)
 		set_sck_out();
 		set_sck_low();
 		sck_delay();
+		sck_delay();
+		sck_delay();
+		sck_delay();
 		return(0);
 	}
 }
 
 void sht11_io_end(void)
 {
+	set_data_high();
+	set_sck_high();
+	set_data_in();
+	set_sck_in();
 	fclose(sht11->data_ddr);
 	fclose(sht11->data_value);
 	fclose(sht11->sck_ddr);
