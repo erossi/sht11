@@ -253,7 +253,7 @@ static void sht11_read_status_reg(void)
 {
 	uint8_t ack;
 
-	sht11->cmd = 7; /* read status reg cmd */
+	sht11->cmd = SHT11_CMD_STATUS_REG_R;
 	sht11->status_reg_crc8 = 0;
 	sht11->status_reg_crc8c = 0;
 	send_start_command();
@@ -331,23 +331,38 @@ static int __init sht11_init(void)
 {
 	int err;
 
-	sht11 = kmalloc(sizeof(struct sht11_t), GFP_KERNEL);
+	/* check if something is passed */
+	err = sht11_sck && sht11_data;
 
-	err = export_pins(1);
-
-	if (err)
-		return(err);
-	else {
-		set_sck_out();
-		set_sck_low();
-		sck_delay();
-		sck_delay();
-		sck_delay();
-		sck_delay();
-		return(0);
+	if (!err) {
+		printk(KERN_INFO "You must specify gpio's pins (sck and data)\n");
+		return(-1);
 	}
 
+	/* Are these gpios valid? */
+	if (!gpio_is_valid(sht11_sck) || !gpio_is_valid(sht11_data)) {
+		printk(KERN_INFO "Error, unavailable gpio\n");
+		return(-1);
+	}
+
+	sht11 = kmalloc(sizeof(struct sht11_t), GFP_KERNEL);
+	err = export_pins(1);
+
+	if (err) {
+		printk(KERN_INFO "Unable to export gpio's pin\n");
+		return(err);
+	}
+
+	set_sck_out();
+	set_sck_low();
+	sck_delay();
+	sck_delay();
+	sck_delay();
+	sck_delay();
 	sht11_read_status_reg();
+
+	printk(KERN_INFO "Sht11 status reg: %d, crc-8: %d\n", sht11->status_reg, sht11->status_reg_crc8);
+	return(0);
 }
 
 static void __exit sht11_exit(void)
@@ -358,6 +373,7 @@ static void __exit sht11_exit(void)
 	set_sck_in();
 	export_pins(0);
 	kfree(sht11);
+	printk(KERN_INFO "Sht11 unloaded\n");
 }
 
 module_init(sht11_init);
