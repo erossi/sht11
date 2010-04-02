@@ -18,8 +18,8 @@
 #ifndef SHT11_GPIO_H
 #define SHT11_GPIO_H
 
-#define VALUE_HIGH 0
-#define VALUE_LOW 1
+#define VALUE_HIGH 1
+#define VALUE_LOW 0
 
 #define SHT11_CMD_STATUS_REG_W 6
 #define SHT11_CMD_STATUS_REG_R 7

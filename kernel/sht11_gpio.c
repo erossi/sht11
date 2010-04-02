@@ -361,7 +361,8 @@ static int __init sht11_init(void)
 	sck_delay();
 	sht11_read_status_reg();
 
-	printk(KERN_INFO "Sht11 status reg: %d, crc-8: %d\n", sht11->status_reg, sht11->status_reg_crc8);
+	printk(KERN_INFO "Sht11 sr: %d, crc8: %d, crc8c: %d\n", sht11->status_reg, sht11->status_reg_crc8, sht11->status_reg_crc8c);
+
 	return(0);
 }
 
