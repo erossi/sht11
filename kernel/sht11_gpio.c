@@ -15,6 +15,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <linux/kobject.h>
+#include <linux/string.h>
+#include <linux/sysfs.h>
 #include <linux/module.h>
 #include <linux/moduleparam.h>
 #include <linux/kernel.h>
@@ -24,6 +27,24 @@
 #include <linux/delay.h>
 #include "sht11_gpio.h"
 
+/* clock delay in ms */
+#define SHT11_SCK_DELAY 1
+
+#define VALUE_HIGH 1
+#define VALUE_LOW 0
+
+#define SHT11_CMD_STATUS_REG_W 6
+#define SHT11_CMD_STATUS_REG_R 7
+#define SHT11_CMD_MEASURE_TEMP 3
+#define SHT11_CMD_MEASURE_HUMI 5
+#define SHT11_CMD_RESET        15
+
+#define SHT11_C1 -4.0           /* for 12 Bit */
+#define SHT11_C2  0.0405        /* for 12 Bit */
+#define SHT11_C3 -0.0000028     /* for 12 Bit */
+#define SHT11_T1  0.01          /* for 14 Bit @ 5V */
+#define SHT11_T2  0.00008       /* for 14 Bit @ 5V */
+
 static struct sht11_t *sht11;
 static int sht11_sck = 0;
 static int sht11_data = 0;
@@ -31,9 +52,9 @@ static int sht11_data = 0;
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Enrico Rossi");
 module_param(sht11_data, int, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
-MODULE_PARM_DESC(sht11_data, "GPIO pin connected to sht11 data line");
+MODULE_PARM_DESC(sht11_data, "GPIO pin connected to sht11 DATA line");
 module_param(sht11_sck, int, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
-MODULE_PARM_DESC(sht11_sck, "GPIO pin connected to sht11 sck line");
+MODULE_PARM_DESC(sht11_sck, "GPIO pin connected to sht11 SCK line");
 
 static void set_sck_out(void)
 {
@@ -122,6 +143,7 @@ static uint8_t bitswapbyte(uint8_t byte)
 	return(result);
 }
 
+/* Code from avr-libc http://www.nongnu.org/avr-libc/ */
 static uint8_t _crc_ibutton_update(uint8_t crc, uint8_t data)
 {
 	uint8_t i;
@@ -142,6 +164,8 @@ static uint8_t sht11_crc8(uint8_t crc, uint8_t data)
 {
 	return(_crc_ibutton_update(crc, bitswapbyte(data)));
 }
+
+/* Common part with avr version */
 
 static void send_byte(uint8_t byte)
 {
@@ -271,7 +295,7 @@ static void sht11_read_status_reg(void)
 }
 
 /* Disable Interrupt to avoid possible clk problem. */
-static void send_cmd()
+static void send_cmd(void)
 {
 	uint8_t ack, byte;
 
@@ -310,6 +334,36 @@ static void send_cmd()
 		terminate_no_ack();
 	}
 }
+
+static void sht11_read_temperature_raw(void)
+{
+	sht11->cmd = SHT11_CMD_MEASURE_TEMP;
+	send_cmd();
+	sht11->raw_temperature = sht11->result;
+	sht11->raw_temperature_crc8 = sht11->crc8;
+	sht11->raw_temperature_crc8c = sht11->crc8c;
+}
+
+static void sht11_read_humidity_raw(void)
+{
+	sht11->cmd = SHT11_CMD_MEASURE_HUMI;
+	send_cmd();
+	sht11->raw_humidity = sht11->result;
+	sht11->raw_humidity_crc8 = sht11->crc8;
+	sht11->raw_humidity_crc8c = sht11->crc8c;
+}
+
+static void sht11_read_all(void)
+{
+        sht11_read_temperature_raw();
+        sht11_read_humidity_raw();
+}
+
+/*
+
+   Kernel only part
+
+ */
 
 /* Export sck and data pins, todo 1 = export, 0 = unexport */
 static int export_pins(int todo)
@@ -360,6 +414,7 @@ static int __init sht11_init(void)
 	sck_delay();
 	sck_delay();
 	sht11_read_status_reg();
+	sht11_read_all();
 
 	printk(KERN_INFO "Sht11 sr: %d, crc8: %d, crc8c: %d\n", sht11->status_reg, sht11->status_reg_crc8, sht11->status_reg_crc8c);
 

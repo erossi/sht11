@@ -18,18 +18,6 @@
 #ifndef SHT11_GPIO_H
 #define SHT11_GPIO_H
 
-#define VALUE_HIGH 1
-#define VALUE_LOW 0
-
-#define SHT11_CMD_STATUS_REG_W 6
-#define SHT11_CMD_STATUS_REG_R 7
-#define SHT11_CMD_MEASURE_TEMP 3
-#define SHT11_CMD_MEASURE_HUMI 5
-#define SHT11_CMD_RESET        15
-
-/* clock delay in ms */
-#define SHT11_SCK_DELAY 1
-
 struct sht11_t {
 	uint16_t raw_temperature;
         uint8_t raw_temperature_crc8; /* read */
