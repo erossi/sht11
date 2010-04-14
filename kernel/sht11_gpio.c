@@ -353,17 +353,55 @@ static void sht11_read_humidity_raw(void)
 	sht11->raw_humidity_crc8c = sht11->crc8c;
 }
 
-static void sht11_read_all(void)
-{
-        sht11_read_temperature_raw();
-        sht11_read_humidity_raw();
-}
-
 /*
 
    Kernel only part
 
  */
+
+static ssize_t show_temperature(struct kobject *kobj,
+		struct kobj_attribute *attr, char *buf)
+{
+	sht11_read_temperature_raw();
+
+	return sprintf(buf, "%d\n", sht11->raw_temperature);
+}
+
+static ssize_t show_humidity(struct kobject *kobj,
+		struct kobj_attribute *attr, char *buf)
+{
+	sht11_read_humidity_raw();
+
+	return sprintf(buf, "%d\n", sht11->raw_humidity);
+}
+
+static struct kobj_attribute temperature_attribute =
+	__ATTR(sht11->raw_temperature, 0444, show_temperature, NULL);
+
+static struct kobj_attribute humidity_attribute =
+	__ATTR(sht11->raw_humidity, 0444, show_humidity, NULL);
+
+/*
+ * Create a group of attributes so that we can create and destory them all
+ * at once.
+ */
+static struct attribute *attrs[] = {
+	&temperature_attribute.attr,
+	&humidity_attribute.attr,
+	NULL,	/* need to NULL terminate the list of attributes */
+};
+
+/*
+ * An unnamed attribute group will put all of the attributes directly in
+ * the kobject directory.  If we specify a name, a subdirectory will be
+ * created for the attributes with the directory being the name of the
+ * attribute group.
+ */
+static struct attribute_group attr_group = {
+	.attrs = attrs,
+};
+
+static struct kobject *sht11_kobj;
 
 /* Export sck and data pins, todo 1 = export, 0 = unexport */
 static int export_pins(int todo)
@@ -384,6 +422,7 @@ static int export_pins(int todo)
 static int __init sht11_init(void)
 {
 	int err;
+	int retval;
 
 	/* check if something is passed */
 	err = sht11_sck && sht11_data;
@@ -407,6 +446,26 @@ static int __init sht11_init(void)
 		return(err);
 	}
 
+	/*
+	 * Create a simple kobject with the name of "kobject_example",
+	 * located under /sys/kernel/
+	 *
+	 * As this is a simple directory, no uevent will be sent to
+	 * userspace.  That is why this function should not be used for
+	 * any type of dynamic kobjects, where the name and number are
+	 * not known ahead of time.
+	 */
+	sht11_kobj = kobject_create_and_add("kobject_sht11", kernel_kobj);
+
+	if (!sht11_kobj)
+		return -ENOMEM;
+
+	/* Create the files associated with this kobject */
+	retval = sysfs_create_group(sht11_kobj, &attr_group);
+
+	if (retval)
+		kobject_put(sht11_kobj);
+
 	set_sck_out();
 	set_sck_low();
 	sck_delay();
@@ -414,11 +473,10 @@ static int __init sht11_init(void)
 	sck_delay();
 	sck_delay();
 	sht11_read_status_reg();
-	sht11_read_all();
 
 	printk(KERN_INFO "Sht11 sr: %d, crc8: %d, crc8c: %d\n", sht11->status_reg, sht11->status_reg_crc8, sht11->status_reg_crc8c);
 
-	return(0);
+	return retval;
 }
 
 static void __exit sht11_exit(void)
@@ -429,6 +487,7 @@ static void __exit sht11_exit(void)
 	set_sck_in();
 	export_pins(0);
 	kfree(sht11);
+	kobject_put(sht11_kobj);
 	printk(KERN_INFO "Sht11 unloaded\n");
 }
 
