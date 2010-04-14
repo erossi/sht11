@@ -18,18 +18,6 @@
 #ifndef SHT11_H_
 #define SHT11_H_
 
-#define SHT11_CMD_STATUS_REG_W 6
-#define SHT11_CMD_STATUS_REG_R 7
-#define SHT11_CMD_MEASURE_TEMP 3
-#define SHT11_CMD_MEASURE_HUMI 5
-#define SHT11_CMD_RESET        15
-
-#define SHT11_C1 -4.0		/* for 12 Bit */
-#define SHT11_C2  0.0405	/* for 12 Bit */
-#define SHT11_C3 -0.0000028	/* for 12 Bit */
-#define SHT11_T1  0.01		/* for 14 Bit @ 5V */
-#define SHT11_T2  0.00008	/* for 14 Bit @ 5V */
-
 struct sht11_t {
 	uint16_t raw_temperature;
         uint8_t raw_temperature_crc8; /* read */

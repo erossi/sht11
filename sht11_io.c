@@ -24,7 +24,18 @@
 #endif
 
 #include "sht11_io.h"
-#include "sht11_avr_io.h"
+
+/* clock delay in ms */
+#define SHT11_SCK_DELAY 1
+
+/* stuff that can be configured on default.h */
+#ifndef SHT11_HAVE_DEFAULT
+#define SHT11_DDR	DDRC
+#define SHT11_PORT	PORTC
+#define SHT11_PIN	PINC
+#define SHT11_DATA	PC1
+#define SHT11_SCK	PC0
+#endif
 
 void set_sck_out(void)
 {

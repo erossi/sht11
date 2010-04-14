@@ -27,6 +27,18 @@
 #include "sht11_io.h"
 #include "sht11.h"
 
+#define SHT11_CMD_STATUS_REG_W 6
+#define SHT11_CMD_STATUS_REG_R 7
+#define SHT11_CMD_MEASURE_TEMP 3
+#define SHT11_CMD_MEASURE_HUMI 5
+#define SHT11_CMD_RESET        15
+
+#define SHT11_C1 -4.0		/* for 12 Bit */
+#define SHT11_C2  0.0405	/* for 12 Bit */
+#define SHT11_C3 -0.0000028	/* for 12 Bit */
+#define SHT11_T1  0.01		/* for 14 Bit @ 5V */
+#define SHT11_T2  0.00008	/* for 14 Bit @ 5V */
+
 void send_byte(uint8_t byte)
 {
 	uint8_t i;
